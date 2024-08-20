@@ -5,6 +5,8 @@
 ```bash
 conda create -n SurgVU
 conda activate SurgVU
+conda install pip
+pip install -r requirment.txt
 ```
 
 ## Labeling
