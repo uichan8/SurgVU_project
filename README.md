@@ -1,6 +1,13 @@
 # SurgVU_Project
+## clone
+```bash
+#ssh
+git clone --recurse-submodules git@github.com:uichan8/SurgVU_project.git
+#https
+git clone --recurse-submodules https://github.com/uichan8/SurgVU_project.git
+```
 
-##envs
+## envs
 ### conda
 ```bash
 conda create -n SurgVU
