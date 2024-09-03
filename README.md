@@ -16,6 +16,14 @@ conda install pip
 pip install -r requirment.txt
 ```
 
+## model download
+### SAM2
+
+### XMem2 (XMem++)
+```bash
+bash script/XMem2_model_download.sh
+```
+
 ## Labeling
 
 ### video forwarder server

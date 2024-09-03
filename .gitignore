@@ -3,3 +3,6 @@
 *temp
 *.mp4
 /video_process
+/annotation_result
+/saves
+__pycache__

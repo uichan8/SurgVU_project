@@ -1,6 +1,7 @@
 import os
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 from PIL import Image
@@ -45,7 +46,42 @@ def blend_image_with_mask(image, mask, color=np.array([255, 255, 0], dtype=np.fl
     
     return blended_image
 
-def label_img(img,img_predictor, r=10):
+def get_class_image(class_name):
+    valid_class = ['bipolar forceps',
+                   'cadiere forceps',
+                   'clip applier ',
+                   'force bipolar',
+                   'grasping retractor',
+                   'monopolar curved scissors',
+                   'needle driver',
+                   'permanent cautery hook/spatula',
+                   'prograsp forceps',
+                   'stapler',
+                   'tip-up fenestrated grasper',
+                   'vessel sealer',
+                   ]
+    idx = valid_class.index(class_name)
+    
+    class_image_list = os.listdir("tools/arms")
+    class_image_list.sort()
+    class_image_path = os.path.join("tools/arms", class_image_list[idx])
+    class_image = Image.open(class_image_path)
+    class_image = np.array(class_image.convert("RGB"))
+    class_image = cv2.cvtColor(class_image, cv2.COLOR_RGB2BGR)
+    return class_image
+
+def label_img(img,img_predictor,color = 'white', r=10):
+    if color == 'white':
+        color = np.array([255, 255, 255], dtype=np.float32)
+    elif color == 'red':
+        color = np.array([255, 0, 0], dtype=np.float32)
+    elif color == 'blue':
+        color = np.array([0, 0, 255], dtype=np.float32)
+    elif color =='green':
+        color = np.array([0, 255, 0], dtype=np.float32)
+
+    error = False
+
     box = []
     positive_points = []
     negative_points = []
@@ -70,10 +106,17 @@ def label_img(img,img_predictor, r=10):
                     img_copy = img.copy()
                     img_copy = cv2.cvtColor(img_copy, cv2.COLOR_RGB2BGR)
                     cv2.rectangle(img_copy, (ix, iy), (x, y), (0, 255, 0), 2)
+                    
                     cv2.imshow('img', img_copy)
+                    cv2.moveWindow('img', 0, 0)
+                    
 
             elif event == cv2.EVENT_LBUTTONUP:
                 drawing = False
+                if ix > x:
+                    ix, x = x, ix
+                if iy > y:
+                    iy, y = y, iy
                 box = [ix, iy, x, y]
                 box_exist = True
                 img_predictor.set_image(img)
@@ -88,6 +131,7 @@ def label_img(img,img_predictor, r=10):
                 result_img = cv2.cvtColor(result_img, cv2.COLOR_RGB2BGR)
                 result_img = cv2.rectangle(result_img, (box[0], box[1]), (box[2], box[3]), (255, 255, 0), 2)
                 cv2.imshow('img', result_img)
+                cv2.moveWindow('img', 0, 0)
 
 
             return
@@ -147,41 +191,67 @@ def label_img(img,img_predictor, r=10):
 
     while True:
         cv2.imshow("img", result_img)  # result_img를 보여줌으로써 업데이트된 내용을 반영
+        cv2.moveWindow('img', 0, 0)
         key = cv2.waitKey(1) & 0xFF
-        if key == 27:  # ESC 키를 누르면 종료
+        if key == 13:  #enter
+            break 
+        elif key == 8: #backspace
+            print('restart')
+            error = True
             break
+        if key == 27: #esc
+            exit()
 
     cv2.destroyAllWindows()
-    # mask중 가장 큰 덩어리만 남기고 삭제
-    mask = mask.astype(np.uint8)
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    largest_contour = max(contours, key=cv2.contourArea)
-    mask = np.zeros_like(mask)
-    cv2.drawContours(mask, [largest_contour], -1, (255), thickness=cv2.FILLED)
+    if error:
+        return None
+    
+    if mask is None or mask.max() == 0:
+        mask = np.zeros(img.shape[:2]).astype(np.uint8)
+    else:
+        # mask중 가장 큰 덩어리만 남기고 삭제
+        mask = mask.astype(np.uint8)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        largest_contour = max(contours, key=cv2.contourArea)
+        mask = np.zeros_like(mask)
+        cv2.drawContours(mask, [largest_contour], -1, (255), thickness=cv2.FILLED)
+    
+    # 마스크에 색 적용
+    result_mask = np.zeros_like(mask)
+    
     return mask
 
-def annotation_process(img_path_list, sam2_checkpoint = "checkpoint/sam2/sam2_hiera_large.pt", model_cfg = "sam2_hiera_l.yaml"):
-    gpu_config(1)
-    sam2_model = build_sam2(model_cfg, sam2_checkpoint, device="cuda:1")
+def image_annotation(img_path_list,mask_save_path_list,annotation_class_list,device_num = 1, sam2_checkpoint = "checkpoint/sam2/sam2_hiera_large.pt", model_cfg = "sam2_hiera_l.yaml"):
+    gpu_config(device_num)
+    sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=f"cuda:{device_num}")
     img_predictor = SAM2ImagePredictor(sam2_model)
 
-    result = []
-    for p in img_path_list:
-        img = Image.open(p)
+    total_label = len(img_path_list)
+    for i in range(total_label):
+        img_path = img_path_list[i]
+        mask_save_path = mask_save_path_list[i]
+        img = Image.open(img_path)
         img = np.array(img.convert("RGB"))
-        mask = label_img(img, img_predictor)
-        result.append(mask)
+        annotation_class = annotation_class_list[i]
+        annotation_class = annotation_class[1:]
+        annotation_class = annotation_class[annotation_class != None]
+        final_mask = np.zeros((img.shape[0],img.shape[1],3)).astype(np.uint8)
 
-    return result
+        for j in range(len(annotation_class)):
+            print(annotation_class)
+            print(annotation_class[j])
+            while True:
+                class_image = get_class_image(annotation_class[j])
+                cv2.imshow('class_image', class_image)
+                cv2.moveWindow('class_image', 0, 800)
+                mask = label_img(img, img_predictor)
+                if mask is not None:
+                    break
+            
+            mask = mask.astype(np.uint8)
+            final_mask[...,j] = mask
 
+        cv2.imwrite(mask_save_path, final_mask)
 
 if __name__ == "__main__":
-    result = annotation_process(["image.png"])
-    img = Image.open("image.png")
-    img = np.array(img.convert("RGB"))
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    for mask in result:
-        img = blend_image_with_mask(img, mask)
-    cv2.imshow("img", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    get_class_image('needle driver')

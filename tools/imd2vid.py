@@ -1,5 +1,6 @@
 import os
 import cv2
+from tqdm import tqdm
 
 def imd2vid(imd_path, vid_path):
     img_list = os.listdir(imd_path)
@@ -9,12 +10,12 @@ def imd2vid(imd_path, vid_path):
     frame_width = sample_img.shape[1]
     frame_height = sample_img.shape[0]
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 코덱을 XVID에서 mp4v로 변경
-    out = cv2.VideoWriter(vid_path, fourcc, 30.0, (frame_width, frame_height))
+    out = cv2.VideoWriter(vid_path, fourcc, 60.0, (frame_width, frame_height))
 
-    for img_name in img_list:
+    for img_name in tqdm(img_list):
         img = cv2.imread(os.path.join(imd_path, img_name))
         out.write(img)
     out.release()
 
 if __name__ == "__main__":
-    imd2vid("Data/clips/result", "output.mp4")
+    imd2vid("annotation_result/case_000_00/overlay", "output.mp4")

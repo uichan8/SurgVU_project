@@ -1,4 +1,8 @@
+numpy
 torch
 matplotlib
 opencv-python
 git+https://github.com/facebookresearch/segment-anything-2.git
+pandas
+progressbar2
+tqdm
