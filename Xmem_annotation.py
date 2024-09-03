@@ -21,11 +21,11 @@ valid_class = ['needle driver',#1
                'tip-up fenestrated grasper',#12
                ]
 
-def video_annotation(video_path, output_path = "annotation_result", sampling_frame = 400,video_fps = 60):
+def video_annotation(video_path, label_path, output_path = "annotation_result", sampling_frame = 400,video_fps = 60, device_num = "0"):
     # 비디오랑, 라벨 가져오고
     video_name = video_path.split("/")[-1]
     video_name = video_name.split(".")[0]
-    csv_path = f"Data/labels/{video_name}.csv"
+    csv_path = label_path
     video_df = pd.read_csv(csv_path)
 
     # 출력 경로 생성
@@ -95,16 +95,21 @@ def video_annotation(video_path, output_path = "annotation_result", sampling_fra
     annotation_img_path_list = [os.path.join(image_path, f"frame_{i:06d}.jpg") for i in annotation_num_list]
     annotation_mask_path_list = [os.path.join(annotation_path, f"frame_{i:06d}.png") for i in annotation_num_list]
 
-    image_annotation(annotation_img_path_list, annotation_mask_path_list, annotation_class_list)
+    image_annotation(annotation_img_path_list, annotation_mask_path_list, annotation_class_list, device_num = device_num)
 
 
 
 
     
 if __name__ == "__main__":
-    video_path_list = os.listdir("Data/clips")
+    root_path = "Data"
+    video_path_list = os.listdir(root_path+"/clips")
     video_path_list.sort()
-    output_path = "annotation_result"
+    label_path_list = []
     for video_path in video_path_list:
+        label_path_list.append(os.path.join(root_path+"/labels",video_path.split(".")[0]+".csv"))
+
+    output_path = "annotation_result"
+    for video_path, label_path in zip(video_path_list, label_path_list):
         video_path = os.path.join("Data/clips", video_path)
-        video_annotation(video_path, output_path)
+        video_annotation(video_path,label_path, output_path, device_num = 0)

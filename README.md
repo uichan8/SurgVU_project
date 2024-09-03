@@ -18,6 +18,9 @@ pip install -r requirment.txt
 
 ## model download
 ### SAM2
+```bash
+bash script/SAM2_model_download.sh
+```
 
 ### XMem2 (XMem++)
 ```bash
@@ -25,6 +28,7 @@ bash script/XMem2_model_download.sh
 ```
 
 ## Labeling
+
 
 ### video forwarder server
 

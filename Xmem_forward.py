@@ -5,7 +5,7 @@ import cv2
 import subprocess
 import re
 
-def video_annotation(video_path, output_path = "annotation_result"):
+def video_annotation(video_path, output_path = "annotation_result", device = "cuda:0"):
     video_name = video_path.split("/")[-1]
     video_name = video_name.split(".")[0]
 
