@@ -103,7 +103,6 @@ def video_annotation(video_path, output_path = "annotation_result", sampling_fra
     
 if __name__ == "__main__":
     video_path_list = os.listdir("Data/clips")
-    video_path_list = ["case_007_02.mp4"]
     video_path_list.sort()
     output_path = "annotation_result"
     for video_path in video_path_list:
